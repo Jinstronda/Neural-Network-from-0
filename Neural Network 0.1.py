@@ -27,7 +27,7 @@ class Layer:
         self.size = n_neurons
         self.type = type
         self.weights = np.zeros((n_neurons,n_input))
-        self.bias = np.zeros(n_neurons)
+        self.bias = np.full((1, n_neurons), 0.01)
         for row_idx, row in enumerate(self.weights): # Initialize Random Weights
             for col_idx, element in enumerate(row):
                 stdev = np.sqrt(2 / n_input)
@@ -55,10 +55,9 @@ class Layer:
             self.dZ = self.aD * dA # Multiplies Loss Function by Activation Derivative to get Z Derivative
 
         self.dW = np.dot(self.dZ.T, self.inputs)# Calculates Weight Derivative
-        self.dW /= m
         self.dB = np.sum(self.dZ,axis=0,keepdims=True) / m # Sums all the dZ values over the Columns, them average them to get b gradients
         self.weights -= self.dW * l
-        self.bias -= self.dB.squeeze() * l
+        self.bias -= self.dB * l
         dA_prev = np.dot(self.dZ,self.weights) # Calculates the new loss derivative to pass to the next layers
         return dA_prev # Returns the derivative for the next layer to use
 
@@ -104,27 +103,72 @@ def forwardtest(): # Testing if Forwarding is done correctly
     return nn.forward(X)  # Expected Values: 3.36,5.12,6.88,8.64
 
 
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Generate the dataset
 np.random.seed(42)
-X = np.linspace(0, 10, 100).reshape(-1, 1)  # For linear dataset
+X = np.linspace(0, 10, 100).reshape(-1, 1)
 noise = np.random.normal(0, 1, X.shape)
 y = 3 * X + 5 + noise
 
+# Normalize the input data
+X_mean = np.mean(X, axis=0)
+X_std = np.std(X, axis=0)
+X_normalized = (X - X_mean) / X_std
+
+# Normalize the target data
+y_mean = np.mean(y, axis=0)
+y_std = np.std(y, axis=0)
+y_normalized = (y - y_mean) / y_std
+
 # Define the neural network architecture
 layer1 = Layer("relu", 10, 1)  # 1 input feature, 10 neurons
-layer2 = Layer("linear", 1, 10)  # Output layer
+layer2 = Layer("relu", 10, 10)
+layer3 = Layer("linear", 1, 10)  # Output layer
+
 
 # Initialize the neural network
-nn = NeuralNetwork([layer1, layer2])
+nn = NeuralNetwork([layer1, layer2,layer3])
+
+# Training parameters
+epochs = 5000
+learning_rate = 0.001
+
+# Training loop
 losses = []
 iterations = []
-for i in range(1000):
-    nn.backpropagation(X,y,0.01)
-    prediction = nn.forward(X)
-    losses.append(mse(prediction,y))
+for i in range(epochs):
+    nn.backpropagation(X_normalized, y_normalized, learning_rate)
+    prediction_normalized = nn.forward(X_normalized)
+    loss = mse(prediction_normalized, y_normalized)
+    losses.append(loss)
     iterations.append(i)
 
-print(nn.forward(X))
-print(" ")
-print(y)
-plt.plot(iterations,losses)
+# Print the final normalized predictions and the normalized target values
+print("Final normalized predictions:\n", nn.forward(X_normalized))
+print("\nNormalized target values:\n", y_normalized)
+
+# Plot the training loss over epochs
+plt.plot(iterations, losses, label="Training Loss")
+plt.title("Training Loss over Epochs")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.legend()
+plt.grid()
+plt.show()
+
+# Predict using the trained model
+y_pred_normalized = nn.forward(X_normalized)
+
+# Denormalize the predicted values
+y_pred = y_pred_normalized * y_std + y_mean
+
+# Plot the predictions vs. actual data
+plt.scatter(X, y, label="Actual Data")
+plt.plot(X, y_pred, color='red', label="Predicted Data")
+plt.title("Actual vs Predicted Data")
+plt.xlabel("X")
+plt.ylabel("y")
+plt.legend()
 plt.show()
