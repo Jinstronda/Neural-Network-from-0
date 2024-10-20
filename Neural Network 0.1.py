@@ -1,8 +1,10 @@
-from audioop import cross
+
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from mnist import MNIST
+
 
 import random as rnd
 
@@ -53,14 +55,17 @@ class Layer:
             return self.activation
 
         elif self.type == "softmax":
-               activation = np.zeros_like(self.z) # Creates an activation vector with the Size of the Neurons
+            z_max = np.max(self.z, axis=1, keepdims=True)
+            exp_z = np.exp(self.z - z_max)
 
+            # Calcula a soma das exponenciais para cada linha
+            sum_exp_z = np.sum(exp_z, axis=1, keepdims=True)
 
-               for i in range(len(self.z)):
-                   sumz = np.sum(np.exp(self.z[i])) # Calculates sum for each Vector
-                   activation[i] = np.exp(self.z[i]) / sumz # Calculates the probability of each class happening
-               self.activation = activation
-               return self.activation
+            # Calcula a ativação Softmax
+            activation = exp_z / sum_exp_z
+
+            self.activation = activation
+            return self.activation # Using Vectors for better calcs
 
 
     def backward(self,dA,l):  # Derivative of Loss Function, dA = Loss Derivative
@@ -99,7 +104,9 @@ def mse(y_hat,y): # Calculates MSE Loss Function
     return loss
 
 def crossentropy_derivative(y_hat,y):
-    return y_hat - y # Calculates Cross Entropy Derivative
+    epsilon = 1e-12  # Para evitar divisão por zero
+    y_hat = np.clip(y_hat, epsilon, 1. - epsilon)
+    return (y_hat - y) / y.shape[0]
 
 
 def forwardtest(): # Testing if Forwarding is done correctly
@@ -118,6 +125,57 @@ def forwardtest(): # Testing if Forwarding is done correctly
     nn = NeuralNetwork([layer1, layer2])
     return nn.forward(X)  # Expected Values: 3.36,5.12,6.88,8.64
 
+def training(nn: NeuralNetwork,X,y_train,learning_rate,epochs,batch_size = 32): # Trains and test the neural network
+    num_samples = X.shape[0] # Num Samples is the number of rows of X
+    for epoch in range(epochs):
+        permutation = np.random.permutation(num_samples)
+        X_shuffled = X[permutation] # Shuffles teh Data
+        y_shuffled = y_train[permutation] # Shuffles the Data
+        for i in range(0,num_samples,batch_size): # Goes over the number of batch (the step size) in the examples
+            X_batch = X_shuffled[i:i + batch_size]
+            y_batch = y_shuffled[i:i+ batch_size]
+            nn.backpropagation(X_batch, y_batch, learning_rate)
+
+def one_hot_encode(labels,num_classes): # One Hot Encode The Variables for Softman
+    return np.eye(num_classes)[labels]
+
+# TESTING ON MNIST DATA SET
+mnist = MNIST('mnist_data',gz=True)
+
+
+# Load the data (returns tuples)
+X_train, y_train = mnist.load_training()
+X_test, y_test = mnist.load_testing()
+
+# Convert the data to NumPy arrays
+X_train = np.array(X_train)
+y_train = np.array(y_train)
+X_test = np.array(X_test)
+y_test = np.array(y_test)
+
+# Normalize the data to the range [0, 1]
+X_train = X_train / 255.0
+X_test = X_test / 255.0
+
+X_train = X_train.reshape(X_train.shape[0], -1)
+X_test = X_test.reshape(X_test.shape[0], -1)
+
+y_train = one_hot_encode(y_train, 10)
+y_test = one_hot_encode(y_test, 10)
+
+
+layer1 = Layer("relu", 64, 784)
+layer2 = Layer("relu", 32, 64)
+layer3 = Layer("softmax",n_neurons=10,n_input = 32)
+
+neuralnetwork = NeuralNetwork([layer1,layer2,layer3])
+training(neuralnetwork,X_train,y_train,0.01,100)
+y_test_labels = np.argmax(y_test, axis=1)
+y_train_labels = np.argmax(y_train,axis=1)
+softmax_output = neuralnetwork.forward(X_train)
+predictions = np.argmax(softmax_output, axis=1)  # Get the index of the highest probability for each sample
+accuracy = np.mean(predictions == y_train_labels)   # Calculate the proportion of correct predictions
+print(f'Accuracy: {accuracy * 100:.2f}%')
 
 
 
