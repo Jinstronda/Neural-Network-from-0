@@ -4,6 +4,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from mnist import MNIST
+import tkinter as tk
+from PIL import Image, ImageDraw, ImageOps, ImageEnhance
+from tkinter import messagebox
+
 
 
 import random as rnd
@@ -139,7 +143,9 @@ def training(nn: NeuralNetwork,X,y_train,learning_rate,epochs,batch_size = 32): 
 def one_hot_encode(labels,num_classes): # One Hot Encode The Variables for Softman
     return np.eye(num_classes)[labels]
 
-# TESTING ON MNIST DATA SET
+
+
+
 mnist = MNIST('mnist_data',gz=True)
 
 
@@ -172,11 +178,55 @@ neuralnetwork = NeuralNetwork([layer1,layer2,layer3])
 training(neuralnetwork,X_train,y_train,0.01,100)
 y_test_labels = np.argmax(y_test, axis=1)
 y_train_labels = np.argmax(y_train,axis=1)
-softmax_output = neuralnetwork.forward(X_train)
+softmax_output = neuralnetwork.forward(X_test)
 predictions = np.argmax(softmax_output, axis=1)  # Get the index of the highest probability for each sample
-accuracy = np.mean(predictions == y_train_labels)   # Calculate the proportion of correct predictions
+accuracy = np.mean(predictions == y_test_labels)   # Calculate the proportion of correct predictions
 print(f'Accuracy: {accuracy * 100:.2f}%')
 
+class DrawingApp:
+    def __init__(self,neural_network):
+        self.window = tk.Tk()
+        self.window.title("Desenhe um Número")
+        self.canvas = tk.Canvas(self.window, width=280, height=280, bg="black")
+        self.canvas.pack(pady=20)
+        self.canvas.bind("<B1-Motion>", self.draw)
+        self.process_button = tk.Button(self.window, text="Processar", command=self.process_image)
+        self.process_button.pack()
 
+        self.image = Image.new("L", (280, 280), "black")
+        self.draw_image = ImageDraw.Draw(self.image)
+        self.nn = neural_network
+        self.clear_button = tk.Button(self.window, text="Limpar", command=self.clear_canvas)
+        self.clear_button.pack(pady=10)
+
+    def draw(self,event):
+        x, y = event.x, event.y
+        r = 5  # Raio do ponto
+        self.canvas.create_oval(x - r, y - r, x + r, y + r, fill='white', outline='white')
+        self.draw_image.ellipse([x - r, y - r, x + r, y + r], fill=255, outline=255)
+    def process_image(self):
+        image = self.image.resize((28, 28), Image.Resampling.LANCZOS)
+        image = ImageOps.autocontrast(image)
+        image_array = np.array(image) / 255.0
+        image_array = image_array.flatten()
+        image_input = image_array.reshape(1, -1)
+        output = self.nn.forward(image_input)
+        prediction = np.argmax(output, axis=1)[0]
+        messagebox.showinfo("Predição", f"Eu acho que é: {prediction}")
+
+    def clear_canvas(self):
+        # Limpa todos os desenhos no Canvas do Tkinter
+        self.canvas.delete("all")
+
+        # Reinicia a imagem PIL para um fundo preto
+        self.image = Image.new("L", (280, 280), "black")
+        self.draw_image = ImageDraw.Draw(self.image)
+
+    def run(self):
+        self.window.mainloop()
+
+
+app = DrawingApp(neuralnetwork)
+app.run()
 
 
