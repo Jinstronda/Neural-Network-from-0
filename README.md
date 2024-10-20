@@ -1,11 +1,14 @@
 16/10/2024
 Creating a Neural Network from scratch to understand them better, for now it only works with Relu and with the last layer being linear, stil helped me understand Neural Networks in a much better way
 
-Initialization:
-n_neurons = Number of Neurons in The Layer
-n_input = Number of Activations in the Previous Layer
-type = Type of Activation Function
+# Basic Neural Network Implementation
+This repository contains a simple implementation of a feedforward neural network from scratch in Python, capable of training on datasets such as the handwritten digits dataset (MNIST). The code demonstrates basic principles of neural networks, including forward propagation, backward propagation (backpropagation), and gradient descent optimization.
 
-Type of Initilization Used for Neurons = He Inicialization
+# Features
+Implements a neural network with customizable layers and activation functions.
+Supports activation functions like ReLU and softmax.
+Handles different types of loss functions, including Mean Squared Error (MSE) and Cross-Entropy Loss.
+Implements backpropagation for training the network using gradient descent.
+Supports training on any numerical dataset, such as the MNIST handwritten digits dataset.
 
 
