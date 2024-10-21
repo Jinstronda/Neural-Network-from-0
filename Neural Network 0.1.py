@@ -24,7 +24,7 @@ class NeuralNetwork:
             activation = i.forward(activation)
         return activation
 
-    def backpropagation(self,X,y_train,learning_rate): # Faz BackPropagation para ajustar os parametros
+    def backpropagation(self,X,y_train,learning_rate,lambda_): # Faz BackPropagation para ajustar os parametros
         y_hat = self.forward(X)
 
         if self.layers[-1].type == "linear": # Starts the Loss Function depending on the output layer
@@ -32,7 +32,7 @@ class NeuralNetwork:
         elif self.layers[-1].type == "softmax":
             dA = crossentropy_derivative(y_hat,y_train) # Calculates Activation Derivative
         for layer in reversed(self.layers): # Starts backpropagation from output layer
-            dA = layer.backward(dA,learning_rate)
+            dA = layer.backward(dA,learning_rate,lambda_)
 
 class Layer:
     def __init__(self,type,n_neurons,n_input): # n_neurons = Numero de Neuronios, n_input = Numero de Inputs
@@ -72,7 +72,7 @@ class Layer:
             return self.activation # Using Vectors for better calcs
 
 
-    def backward(self,dA,l):  # Derivative of Loss Function, dA = Loss Derivative
+    def backward(self,dA,l,lambda_):  # Derivative of Loss Function, dA = Loss Derivative
         m = self.inputs.shape[0] # M is equal to the nummber of inputs the Layer receives
         if self.type == "linear":
             self.dZ = dA
@@ -84,6 +84,8 @@ class Layer:
 
         self.dW = np.dot(self.dZ.T, self.inputs)# Calculates Weight Derivative
         self.dB = np.sum(self.dZ,axis=0,keepdims=True)  # Sums all the dZ values over the Columns, them average them to get b gradients
+        regularization = (lambda_ /m) * self.weights # Applies Regularization
+        self.dW += regularization
         self.weights -= (self.dW * l) / m
         self.bias -= (self.dB * l) / m
         dA_prev = np.dot(self.dZ,self.weights) # Calculates the new loss derivative to pass to the next layers
@@ -129,7 +131,7 @@ def forwardtest(): # Testing if Forwarding is done correctly
     nn = NeuralNetwork([layer1, layer2])
     return nn.forward(X)  # Expected Values: 3.36,5.12,6.88,8.64
 
-def training(nn: NeuralNetwork,X,y_train,learning_rate,epochs,batch_size = 32): # Trains and test the neural network
+def training(nn: NeuralNetwork,X,y_train,learning_rate,epochs,lambda_,batch_size = 32, ): # Trains and test the neural network
     num_samples = X.shape[0] # Num Samples is the number of rows of X
     for epoch in range(epochs):
         permutation = np.random.permutation(num_samples)
@@ -138,7 +140,7 @@ def training(nn: NeuralNetwork,X,y_train,learning_rate,epochs,batch_size = 32): 
         for i in range(0,num_samples,batch_size): # Goes over the number of batch (the step size) in the examples
             X_batch = X_shuffled[i:i + batch_size]
             y_batch = y_shuffled[i:i+ batch_size]
-            nn.backpropagation(X_batch, y_batch, learning_rate)
+            nn.backpropagation(X_batch, y_batch, learning_rate,lambda_)
 
 def one_hot_encode(labels,num_classes): # One Hot Encode The Variables for Softman
     return np.eye(num_classes)[labels]
@@ -171,11 +173,11 @@ y_test = one_hot_encode(y_test, 10)
 
 
 layer1 = Layer("relu", 64, 784)
-layer2 = Layer("relu", 32, 64)
-layer3 = Layer("softmax",n_neurons=10,n_input = 32)
-
-neuralnetwork = NeuralNetwork([layer1,layer2,layer3])
-training(neuralnetwork,X_train,y_train,0.01,100)
+layer2 = Layer("relu", 64, 64)
+layer3 = Layer("relu", 64, 64)
+layer4 = Layer("softmax",n_neurons=10,n_input = 64)
+neuralnetwork = NeuralNetwork([layer1,layer2,layer3,layer4])
+training(neuralnetwork,X_train,y_train,0.01,200,0.001)
 y_test_labels = np.argmax(y_test, axis=1)
 y_train_labels = np.argmax(y_train,axis=1)
 softmax_output = neuralnetwork.forward(X_test)
@@ -204,12 +206,27 @@ class DrawingApp:
         r = 5  # Raio do ponto
         self.canvas.create_oval(x - r, y - r, x + r, y + r, fill='white', outline='white')
         self.draw_image.ellipse([x - r, y - r, x + r, y + r], fill=255, outline=255)
+
     def process_image(self):
+        # Resize to 28x28 pixels
         image = self.image.resize((28, 28), Image.Resampling.LANCZOS)
-        image = ImageOps.autocontrast(image)
-        image_array = np.array(image) / 255.0
-        image_array = image_array.flatten()
-        image_input = image_array.reshape(1, -1)
+        image_array = np.array(image)
+        threshold = 50  # You can adjust this value
+        image_array = np.where(image_array > threshold, 255, 0)
+
+        coords = np.column_stack(np.where(image_array > 0))
+        if coords.size == 0:
+            messagebox.showinfo("Erro", "Por favor, desenhe um dígito antes de processar.")
+            return
+        x0, y0 = coords.min(axis=0)
+        x1, y1 = coords.max(axis=0)
+        cropped_image = image_array[x0:x1 + 1, y0:y1 + 1]
+        digit_image = Image.fromarray(cropped_image).resize((20, 20), Image.Resampling.LANCZOS)
+
+        new_image = Image.new('L', (28, 28), 'black')
+        new_image.paste(digit_image, (4, 4))  # Center the digit
+        image_array = np.array(new_image) / 255.0
+        image_input = image_array.flatten().reshape(1, -1)
         output = self.nn.forward(image_input)
         prediction = np.argmax(output, axis=1)[0]
         messagebox.showinfo("Predição", f"Eu acho que é: {prediction}")
