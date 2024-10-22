@@ -133,18 +133,43 @@ def forwardtest(): # Testing if Forwarding is done correctly
 
 def training(nn: NeuralNetwork,X,y_train,learning_rate,epochs,lambda_,batch_size = 32, ): # Trains and test the neural network
     num_samples = X.shape[0] # Num Samples is the number of rows of X
+    losses = []
+    iterations = []
     for epoch in range(epochs):
         permutation = np.random.permutation(num_samples)
         X_shuffled = X[permutation] # Shuffles teh Data
         y_shuffled = y_train[permutation] # Shuffles the Data
+
         for i in range(0,num_samples,batch_size): # Goes over the number of batch (the step size) in the examples
             X_batch = X_shuffled[i:i + batch_size]
             y_batch = y_shuffled[i:i+ batch_size]
             nn.backpropagation(X_batch, y_batch, learning_rate,lambda_)
+        if epoch % 5 == 0:
+            # Collect weights from all layers
+            weights_list = [layer.weights for layer in nn.layers]
+
+            # Compute predictions on the training set
+            y_pred = nn.forward(X)
+
+            # Calculate total loss with regularization over all layers
+            total_loss = crossentropy_with_regularization(y_pred, y_train, weights_list, lambda_)
+            losses.append(total_loss)
+            iterations.append(epoch)
+            print(f"Epoch {epoch}, Loss: {total_loss}")
+
+
 
 def one_hot_encode(labels,num_classes): # One Hot Encode The Variables for Softman
     return np.eye(num_classes)[labels]
 
+def crossentropy_with_regularization(y_hat, y, weights, lambda_): # Crossentropy Loss with Regularization to Graph it
+    m = y.shape[0]
+    epsilon = 1e-12
+    y_hat = np.clip(y_hat, epsilon, 1. - epsilon)
+    cross_entropy_loss = -np.sum(y * np.log(y_hat)) / m
+    regularization_loss = (lambda_ / (2 * m)) * sum(np.sum(w ** 2) for w in weights)
+    total_loss = cross_entropy_loss + regularization_loss
+    return total_loss
 
 
 
