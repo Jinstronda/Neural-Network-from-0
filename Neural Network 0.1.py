@@ -86,9 +86,10 @@ class Layer:
         self.dB = np.sum(self.dZ,axis=0,keepdims=True)  # Sums all the dZ values over the Columns, them average them to get b gradients
         regularization = (lambda_ /m) * self.weights # Applies Regularization
         self.dW += regularization
+        dA_prev = np.dot(self.dZ, self.weights)  # Calculates the new loss derivative to pass to the next layers
         self.weights -= (self.dW * l) / m
         self.bias -= (self.dB * l) / m
-        dA_prev = np.dot(self.dZ,self.weights) # Calculates the new loss derivative to pass to the next layers
+
         return dA_prev # Returns the derivative for the next layer to use
 
 
@@ -202,7 +203,7 @@ layer2 = Layer("relu", 64, 64)
 layer3 = Layer("relu", 64, 64)
 layer4 = Layer("softmax",n_neurons=10,n_input = 64)
 neuralnetwork = NeuralNetwork([layer1,layer2,layer3,layer4])
-training(neuralnetwork,X_train,y_train,0.01,50,0.001)
+training(neuralnetwork,X_train,y_train,0.005,100,0.001)
 y_test_labels = np.argmax(y_test, axis=1)
 y_train_labels = np.argmax(y_train,axis=1)
 softmax_output = neuralnetwork.forward(X_test)
@@ -234,7 +235,7 @@ class DrawingApp:
 
     def process_image(self):
         # Resize to 28x28 pixels
-        image = self.image.resize((28, 28), Image.Resampling.LANCZOS)
+        image = self.image.resize((28, 28), Image.ANTIALIAS)
         image_array = np.array(image)
         threshold = 50  # You can adjust this value
         image_array = np.where(image_array > threshold, 255, 0)
