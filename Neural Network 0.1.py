@@ -44,6 +44,12 @@ class Layer:
             for col_idx, element in enumerate(row):
                 stdev = np.sqrt(2 / n_input)
                 self.weights[row_idx,col_idx] = np.random.normal(0,stdev)
+        # Momentum Terms initialization
+        self.V_dW = np.zeros_like(self.weights)  # Same shape as weights
+        self.V_dB = np.zeros_like(self.bias)  # Same shape as bias
+        self.S_dW = np.zeros_like(self.weights)
+        self.S_dB = np.zeros_like(self.bias)
+        self.t = 0 # Time For Adam
 
     def forward(self,x):
         self.bias = self.bias.reshape(1, -1)
@@ -71,24 +77,35 @@ class Layer:
             self.activation = activation
             return self.activation # Using Vectors for better calcs
 
-
-    def backward(self,dA,l,lambda_):  # Derivative of Loss Function, dA = Loss Derivative
+# Implementing Momentum Based Gradient Descent for faster convergence
+    def backward(self,dA,l,lambda_,beta=0.9,beta_2=0.999,epsilon =1e-8):  # Derivative of Loss Function, dA = Loss Derivative
         m = self.inputs.shape[0] # M is equal to the nummber of inputs the Layer receives
         if self.type == "linear":
             self.dZ = dA
         elif self.type == "relu":
             self.aD = relu_derivative(self.z) # Sets Activation Derivative
-            self.dZ = self.aD * dA # Multiplies Loss Function by Activation Derivative to get Z Derivative
+            self.dZ = self.aD * dA # Multiplies Input Function by Activation Derivative to get Z Derivative
         elif self.type == "softmax":
             self.dZ = dA
-
-        self.dW = np.dot(self.dZ.T, self.inputs)# Calculates Weight Derivative
-        self.dB = np.sum(self.dZ,axis=0,keepdims=True)  # Sums all the dZ values over the Columns, them average them to get b gradients
+        self.t += 1
+        self.dW = np.dot(self.dZ.T, self.inputs) / m# Calculates Weight Derivative
+        self.dB = np.sum(self.dZ,axis=0,keepdims=True) / m   # Sums all the dZ values over the Columns, them average them to get b gradients
         regularization = (lambda_ /m) * self.weights # Applies Regularization
         self.dW += regularization
+        # Applying Momentum to Make It faster
+        self.V_dW = beta * self.V_dW + (1 - beta) * self.dW
+        self.V_dB = beta * self.V_dB + (1 - beta) * self.dB
+        # Adds Correction
+        V_dw_corrected = self.V_dW / (1 - beta ** self.t)
+        V_db_corrected = self.V_dB / (1 - beta ** self.t)
+        self.S_dW = np.multiply(beta_2,self.S_dW) + np.multiply((1-beta_2),self.dW ** 2)
+        self.S_dB = np.multiply(beta_2, self.S_dB) + np.multiply((1 - beta_2), self.dB ** 2)
+        S_dw_corrected = self.S_dW / (1 - beta_2 ** self.t)
+        S_db_corrected = self.S_dB / (1 - beta_2 ** self.t)
         dA_prev = np.dot(self.dZ, self.weights)  # Calculates the new loss derivative to pass to the next layers
-        self.weights -= (self.dW * l) / m
-        self.bias -= (self.dB * l) / m
+        self.weights -= l * (V_dw_corrected / (np.sqrt(S_dw_corrected) + epsilon))
+        self.bias -= l * (V_db_corrected / (np.sqrt(S_db_corrected) + epsilon))
+
 
         return dA_prev # Returns the derivative for the next layer to use
 
@@ -174,6 +191,8 @@ def crossentropy_with_regularization(y_hat, y, weights, lambda_): # Crossentropy
 
 
 
+
+
 mnist = MNIST('mnist_data',gz=True)
 
 
@@ -200,10 +219,10 @@ y_test = one_hot_encode(y_test, 10)
 
 layer1 = Layer("relu", 64, 784)
 layer2 = Layer("relu", 64, 64)
-layer3 = Layer("relu", 64, 64)
-layer4 = Layer("softmax",n_neurons=10,n_input = 64)
-neuralnetwork = NeuralNetwork([layer1,layer2,layer3,layer4])
-training(neuralnetwork,X_train,y_train,0.005,100,0.001)
+layer3 = Layer("softmax", 10, 64)
+neuralnetwork = NeuralNetwork([layer1,layer2,layer3])
+training(neuralnetwork,X_train,y_train,0.01,50,0.001)
+
 y_test_labels = np.argmax(y_test, axis=1)
 y_train_labels = np.argmax(y_train,axis=1)
 softmax_output = neuralnetwork.forward(X_test)
@@ -235,10 +254,9 @@ class DrawingApp:
 
     def process_image(self):
         # Resize to 28x28 pixels
-        image = self.image.resize((28, 28), Image.ANTIALIAS)
+        image = self.image.resize((28, 28), Image.Resampling.LANCZOS)
         image_array = np.array(image)
-        threshold = 50  # You can adjust this value
-        image_array = np.where(image_array > threshold, 255, 0)
+
 
         coords = np.column_stack(np.where(image_array > 0))
         if coords.size == 0:
