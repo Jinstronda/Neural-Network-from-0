@@ -221,7 +221,7 @@ layer1 = Layer("relu", 64, 784)
 layer2 = Layer("relu", 64, 64)
 layer3 = Layer("softmax", 10, 64)
 neuralnetwork = NeuralNetwork([layer1,layer2,layer3])
-training(neuralnetwork,X_train,y_train,0.01,50,0.001)
+training(neuralnetwork,X_train,y_train,0.001,30,0.001)
 
 y_test_labels = np.argmax(y_test, axis=1)
 y_train_labels = np.argmax(y_train,axis=1)
