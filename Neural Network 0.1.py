@@ -175,7 +175,7 @@ def training(nn: NeuralNetwork,X,y_train,learning_rate,epochs,lambda_,batch_size
             losses.append(total_loss)
             iterations.append(epoch)
             print(f"Epoch {epoch}, Loss: {total_loss}")
-        learning_rate = ((1/1+decayrate*epoch)) * alpha0
+        learning_rate = alpha0 / (1 + decayrate * epoch)
 
 
 def one_hot_encode(labels,num_classes): # One Hot Encode The Variables for Softman
