@@ -149,13 +149,14 @@ def forwardtest(): # Testing if Forwarding is done correctly
     nn = NeuralNetwork([layer1, layer2])
     return nn.forward(X)  # Expected Values: 3.36,5.12,6.88,8.64
 
-def training(nn: NeuralNetwork,X,y_train,learning_rate,epochs,lambda_,batch_size = 32, ): # Trains and test the neural network
+def training(nn: NeuralNetwork,X,y_train,learning_rate,epochs,lambda_,batch_size = 32, decayrate = 0.01): # Trains and test the neural network
     num_samples = X.shape[0] # Num Samples is the number of rows of X
     losses = []
     iterations = []
+    alpha0 = learning_rate
     for epoch in range(epochs):
         permutation = np.random.permutation(num_samples)
-        X_shuffled = X[permutation] # Shuffles teh Data
+        X_shuffled = X[permutation] # Shuffles the Data
         y_shuffled = y_train[permutation] # Shuffles the Data
 
         for i in range(0,num_samples,batch_size): # Goes over the number of batch (the step size) in the examples
@@ -174,7 +175,7 @@ def training(nn: NeuralNetwork,X,y_train,learning_rate,epochs,lambda_,batch_size
             losses.append(total_loss)
             iterations.append(epoch)
             print(f"Epoch {epoch}, Loss: {total_loss}")
-
+        learning_rate = ((1/1+decayrate*epoch)) * alpha0
 
 
 def one_hot_encode(labels,num_classes): # One Hot Encode The Variables for Softman
