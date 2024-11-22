@@ -7,7 +7,7 @@ from sklearn.metrics import precision_score, recall_score, f1_score  # Just for 
 
 def main():
     # Load the MNIST dataset
-    mnist = MNIST('mnist_data', gz=True)
+    mnist = MNIST("MNIST_dataset",gz=True)
 
     # Load the data (returns tuples)
     X_train, y_train = mnist.load_training()
@@ -32,14 +32,14 @@ def main():
     # Initialize the neural network layers
     layer1 = Layer("relu", 64, 784,True)
     layer2 = Layer("relu", 64, 64,True)
-    layer3 = Layer("softmax", 10, 64,True)
+    layer3 = Layer("softmax", 10, 64, True)
     neuralnetwork = NeuralNetwork([layer1, layer2, layer3])
 
     # Testing Different Learning Rates and saving them, using a log scale
     # r = np.random.uniform(np.log10(0.0001), np.log10(0.01))
     # alpha = 10 ** r
     # Train the neural network
-    training(neuralnetwork, X_train, y_train, alpha, 20, 0.001)
+    training(neuralnetwork, X_train, y_train, alpha, 20, lambda_)
     neuralnetwork.testing()
 
     # Evaluate the neural network on test data
@@ -56,13 +56,18 @@ def main():
     print(f'Recall: {recall * 100:.2f}%')
     print(f'F1 Score: {f1 * 100:.2f}%')
     print(f"Learning Rate:{alpha}")
-
+    print(f"Regularization:{lambda_}")
+    print(f"Batch Size:{batch_size}")
     with open("results.txt", "a") as f:
+        f.write(f"Trial Number {trial}\n")
         f.write(f"Learning Rate:{alpha}\n")
+        f.write(f"Regularization:{lambda_}\n")
         f.write(f"Precision: {precision * 100:.2f}%\n")
         f.write(f"Recall: {recall * 100:.2f}%\n")
         f.write(f"F1 Score: {f1 * 100:.2f}%\n")
         f.write(f"Accuracy: {accuracy * 100:.2f}%\n")
+        f.write(f"Batch Size: {batch_size}\n")
+        f.write(f"Epochs: {epochs}\n")
         f.write("\n")
 
     # Initialize and run the drawing application
