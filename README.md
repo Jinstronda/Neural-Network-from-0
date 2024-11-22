@@ -9,8 +9,7 @@ This project demonstrates the creation of a simple neural network from scratch u
 - [Installation](#installation)
 - [Usage](#usage)
 - [Project Structure](#project-structure)
-- [Contributing](#contributing)
-- [License](#license)
+
 
 ### Introduction
 Hello! I am a college student with a strong passion for artificial intelligence and machine learning. This project is my endeavor to understand neural networks better by building one from scratch. It focuses on leveraging fundamental concepts, rather than abstracted high-level APIs, to provide a more granular insight into how neural networks operate.
