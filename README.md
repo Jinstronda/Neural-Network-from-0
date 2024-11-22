@@ -27,7 +27,7 @@ Hello! I am a college student with a strong passion for artificial intelligence 
 ### Installation
 1. **Clone the repository**
     ```sh
-    git clone https://github.com/your-username/neural-networks-from-scratch.git
+    git clone https://github.com/jinstronda/neural-networks-from-scratch.git
     ```
 2. **Change to the project directory**
     ```sh
