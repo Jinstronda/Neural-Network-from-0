@@ -274,7 +274,7 @@ def training(nn: NeuralNetwork, X, y_train, learning_rate, epochs, lambda_, batc
 # Main execution code
 def main():
     # Load the MNIST dataset
-    mnist = MNIST('mnist_data', gz=True)
+    mnist = MNIST("neural_network/MNIST_dataset", gz=True)
 
     # Load the data (returns tuples)
     X_train, y_train = mnist.load_training()
@@ -297,9 +297,9 @@ def main():
     y_test = one_hot_encode(y_test, 10)
 
     # Initialize the neural network layers
-    layer1 = Layer("relu", 64, 784,True)
-    layer2 = Layer("relu", 64, 64,True)
-    layer3 = Layer("softmax", 10, 64,True)
+    layer1 = Layer("relu", 256, 784,True)
+    layer2 = Layer("relu", 256, 256,True)
+    layer3 = Layer("softmax", 10, 256,True)
     neuralnetwork = NeuralNetwork([layer1, layer2, layer3])
     alpha = 0.000616613203461531
     # Testing Different Learning Rates and saving them, using a log scale
